@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/index.ts",
-    "worker": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/queue/workers/evaluation.worker.ts",
+    "worker": "ts-node-dev -r tsconfig-paths/register --respawn --transpile-only ./src/queue/workers/evaluation.worker.ts",
     "migrate:create": "dotenv -e .env -- node-pg-migrate create --migrations-dir src/db/migrations --migration-file-language sql",
     "migrate:up": "dotenv -e .env -- node-pg-migrate up --migrations-dir src/db/migrations",
     "migrate:down": "dotenv -e .env -- node-pg-migrate down --migrations-dir src/db/migrations",

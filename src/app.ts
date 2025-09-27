@@ -1,4 +1,4 @@
-import { uploadRouter } from "@routes/upload.route";
+import { uploadRouter, evaluateRouter } from "@routes/index.route";
 import express, { type Request, type Response } from "express";
 import morgan from "morgan";
 import path from "path";
@@ -9,6 +9,8 @@ export function createApp() {
   app.use(morgan("dev"));
 
   app.use("/uploads", express.static(path.resolve("uploads")));
+  app.use(uploadRouter);
+  app.use(evaluateRouter);
 
   app.get("/", (_req: Request, res: Response) =>
     res.json({ name: "ai-cv-evaluation", status: "ok" }),

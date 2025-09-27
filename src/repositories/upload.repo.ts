@@ -1,5 +1,13 @@
 import { randomUUID } from "crypto";
-import { query } from "@db/pool";
+import { query, queryRows } from "@db/pool";
+
+export type UploadRow = {
+  id: string;
+  cv_path: string;
+  cv_mime: string | null;
+  report_path: string;
+  report_mime: string | null;
+};
 
 export type CreateUploadArgs = {
   cvPath: string;
@@ -54,6 +62,6 @@ export async function createUpload(args: CreateUploadArgs) {
 }
 
 export async function getUploadById(id: string) {
-  const r = await query(RawQuery.getUploadRecordById, [id]);
-  return r.rowCount ? r.rows[0] : null;
+  const r = await queryRows<UploadRow>(RawQuery.getUploadRecordById, [id]);
+  return r[0] ?? null;
 }
