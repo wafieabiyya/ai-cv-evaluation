@@ -8,9 +8,13 @@ import { errorMiddleware } from "@middlewares/error.middleware";
 import { PgvectorRAG } from "@rag/pgvector.store";
 import { makeEmbedder } from "@llm/embedder.factory";
 
+import swaggerUi from "swagger-ui-express";
+import YAML from "yamljs";
+
 export function createApp() {
   const app = express();
   const rag = new PgvectorRAG(makeEmbedder());
+  const openapi = YAML.load(path.resolve("docs/openapi.yaml"));
 
   app.use(express.json({ limit: "2mb" }));
   app.use(morgan("dev"));
@@ -38,6 +42,10 @@ export function createApp() {
   // routes
   app.use(uploadRouter);
   app.use(evaluateRouter);
+
+  // docs
+  app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
+  app.get("/openapi.json", (_req, res) => res.json(openapi));
 
   // 404
   app.use((_req, res) => res.status(404).json({ error: "Not Found" }));

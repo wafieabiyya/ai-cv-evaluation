@@ -1,0 +1,157 @@
+openapi: 3.1.0
+info:
+  title: AI CV Evaluation API
+  version: 1.0.0
+  description: Backend mini project – upload CV & project report, evaluate with RAG + LLM.
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /upload:
+    post:
+      summary: Upload CV & project report
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [cv, project_report]
+              properties:
+                cv:
+                  type: string
+                  format: binary
+                project_report:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+        "400": { description: Bad Request }
+        "413": { description: Payload Too Large }
+        "415": { description: Unsupported Media Type }
+  /evaluate:
+    post:
+      summary: Enqueue evaluation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [upload_id]
+              properties:
+                upload_id:
+                  type: string
+      responses:
+        "202":
+          description: Job queued (idempotent)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id: { type: string }
+                  status: { type: string, enum: [queued, processing] }
+        "400": { description: upload_id required }
+        "404": { description: upload not found }
+        "500": { description: enqueue failed }
+  /result/{job_id}:
+    get:
+      summary: Get evaluation result
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Result or status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultResponse"
+        "404": { description: job not found }
+  /rag/search:
+    get:
+      summary: Dev utility – semantic search
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Hits
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  q: { type: string }
+                  hits:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RagHit"
+components:
+  schemas:
+    UploadResponse:
+      type: object
+      properties:
+        upload_id: { type: string }
+        cv_path: { type: string }
+        report_path: { type: string }
+        cv_url: { type: string }
+        project_report_url: { type: string }
+    RagHit:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string }
+        title: { type: string }
+        raw_text: { type: string }
+        distance: { type: number, nullable: true }
+    ResultResponse:
+      type: object
+      properties:
+        job_id: { type: string }
+        status: { type: string, enum: [queued, processing, completed, failed] }
+        result:
+          type: object
+          nullable: true
+          properties:
+            cv_match_rate: { type: integer, minimum: 0, maximum: 100 }
+            project_score: { type: integer, minimum: 0, maximum: 100 }
+            overall_summary: { type: string }
+            project_feedback:
+              type: array
+              items: { type: string }
+            contexts:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  type: { type: string }
+                  title: { type: string }
+                  similarity: { type: number }
+                  excerpt: { type: string }
+            meta:
+              type: object
+              properties:
+                avg: { type: number }
+                reason: { type: string }
+                decision:
+                  { type: string, enum: [strong_pass, pass, borderline, fail] }
+        error:
+          type: string
+          nullable: true
