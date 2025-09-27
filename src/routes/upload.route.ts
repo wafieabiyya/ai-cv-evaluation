@@ -22,10 +22,12 @@ const upload = multer({
 
 uploadRouter.post(
   "/upload",
-  upload.fields([
-    { name: "cv", maxCount: 1 },
-    { name: "project_report", maxCount: 1 },
-  ]),
-  // @ts-ignore multer typing vs handler signature
+  (req, res, next) => {
+    upload.fields([
+      { name: "cv", maxCount: 1 },
+      { name: "project_report", maxCount: 1 },
+    ])(req, res, (err: any) => (err ? next(err) : next()));
+  },
+  // @ts-ignore
   uploadHandler,
 );

@@ -1,5 +1,8 @@
 import { uploadRouter, evaluateRouter } from "@routes/index.route";
 import express, { type Request, type Response } from "express";
+
+import { errorMiddleware } from "@middlewares/error.middleware";
+
 import morgan from "morgan";
 import path from "path";
 
@@ -11,6 +14,9 @@ export function createApp() {
   app.use("/uploads", express.static(path.resolve("uploads")));
   app.use(uploadRouter);
   app.use(evaluateRouter);
+
+  //middleware
+  app.use(errorMiddleware);
 
   app.get("/", (_req: Request, res: Response) =>
     res.json({ name: "ai-cv-evaluation", status: "ok" }),

@@ -16,7 +16,8 @@
       "@rag/*": ["src/rag/*"],
       "@utils/*": ["src/utils/*"],
       "@types/*": ["src/types/*"],
-      "@config/*": ["src/config/*"]
+      "@config/*": ["src/config/*"],
+      "@middlewares/*": ["src/middlewares/*"]
     },
 
     // Environment Settings
