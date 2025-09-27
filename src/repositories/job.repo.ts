@@ -15,6 +15,12 @@ export const RawQuery = {
     INSERT INTO jobs (id, upload_id, status)
     VALUES ($1, $2, 'queued')
   `,
+  getActiveByUpload: `
+    SELECT id, status FROM jobs
+    WHERE upload_id = $1 AND status IN ('queued','processing')
+    ORDER BY created_at DESC
+    LIMIT 1
+  `,
   markAsProcessing: `
     UPDATE jobs
     SET status = 'processing'
@@ -41,9 +47,20 @@ export const RawQuery = {
 
 export async function createJob(uploadID: string) {
   const id = "job_" + randomUUID();
-  await query(RawQuery.createJobRecord, [id, uploadID]);
-
-  return { id };
+  try {
+    await query(RawQuery.createJobRecord, [id, uploadID]);
+    return { id };
+  } catch (e: any) {
+    // unique_violation
+    if (e?.code === "23505") {
+      const rows = await queryRows<{ id: string; status: JobStatus }>(
+        RawQuery.getActiveByUpload,
+        [uploadID],
+      );
+      if (rows[0]) return { id: rows[0].id };
+    }
+    throw e;
+  }
 }
 
 export async function markProcessing(jobID: string) {
