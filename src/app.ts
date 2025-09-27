@@ -1,23 +1,24 @@
-import { uploadRouter, evaluateRouter } from "@routes/index.route";
 import express, { type Request, type Response } from "express";
-
-import { errorMiddleware } from "@middlewares/error.middleware";
-
 import morgan from "morgan";
 import path from "path";
 
+import { uploadRouter, evaluateRouter } from "@routes/index.route";
+import { errorMiddleware } from "@middlewares/error.middleware";
+
+import { PgvectorRAG } from "@rag/pgvector.store";
+import { makeEmbedder } from "@llm/embedder.factory";
+
 export function createApp() {
   const app = express();
+  const rag = new PgvectorRAG(makeEmbedder());
+
   app.use(express.json({ limit: "2mb" }));
   app.use(morgan("dev"));
 
+  // static dev
   app.use("/uploads", express.static(path.resolve("uploads")));
-  app.use(uploadRouter);
-  app.use(evaluateRouter);
 
-  //middleware
-  app.use(errorMiddleware);
-
+  // health / root
   app.get("/", (_req: Request, res: Response) =>
     res.json({ name: "ai-cv-evaluation", status: "ok" }),
   );
@@ -26,10 +27,23 @@ export function createApp() {
     res.json({ ok: true });
   });
 
-  // mount
-  app.use(uploadRouter);
+  // dev-only RAG search
+  app.get("/rag/search", async (req, res) => {
+    const q = String(req.query.q || "");
+    if (!q) return res.status(400).json({ error: "query_required" });
+    const hits = await rag.search(q, 3);
+    res.json({ q, hits });
+  });
 
-  // 404 last
+  // routes
+  app.use(uploadRouter);
+  app.use(evaluateRouter);
+
+  // 404
   app.use((_req, res) => res.status(404).json({ error: "Not Found" }));
+
+  // err middleware
+  app.use(errorMiddleware);
+
   return app;
 }
