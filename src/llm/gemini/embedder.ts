@@ -10,9 +10,8 @@ export class GeminiEmbedder implements EmbeddingsPort {
     this.model = process.env.GEMINI_EMBEDDING_MODEL || "text-embedding-004";
   }
   async embed(text: string): Promise<number[]> {
-    // API: embedContent → { embedding: { values: number[] } }
     const mdl = this.client.getGenerativeModel({ model: this.model });
     const res: any = await mdl.embedContent(text);
-    return res?.embedding?.values as number[]; // 768-dim by default
+    return res?.embedding?.values as number[];
   }
 }

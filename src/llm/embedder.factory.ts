@@ -13,7 +13,6 @@ export function makeEmbedder(): EmbeddingsPort {
   else if (prov === "gemini") primary = new GeminiEmbedder();
   else primary = new MockEmbedder();
 
-  // fallback → MockEmbedder dengan DIM sama (biar aman)
   const fallback = new MockEmbedder();
 
   return new ResilientEmbedder(primary, fallback, prov);
