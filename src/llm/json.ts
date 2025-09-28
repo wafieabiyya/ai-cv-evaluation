@@ -1,21 +1,44 @@
-import type { LLMScore } from "@llm/ports";
+import { z } from "zod";
+import type { LLMScoreRaw } from "@llm/ports";
 
-export function parseEvalJson(s: string): LLMScore {
-  let obj: any;
+const clamp15 = (n: unknown) => Math.max(1, Math.min(5, Number(n) || 1));
+
+const Schema = z.object({
+  cvBreakdown: z.object({
+    tech: z.number(),
+    experience: z.number(),
+    achievements: z.number(),
+    culture: z.number(),
+  }),
+  projectBreakdown: z.object({
+    correctness: z.number(),
+    code: z.number(),
+    resilience: z.number(),
+    docs: z.number(),
+    creativity: z.number(),
+  }),
+  summary: z.string().min(10),
+  feedback: z.array(z.string()).min(1),
+});
+
+export function parseEvalJson(raw: string): LLMScoreRaw {
+  let obj: unknown;
   try {
-    obj = JSON.parse(s);
+    obj = JSON.parse(raw);
   } catch {
     throw new Error("llm_invalid_json");
   }
-  const int01 = (n: any) => {
-    const v = Math.round(Number(n));
-    return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 0;
-  };
-  const arr = Array.isArray(obj?.project_feedback) ? obj.project_feedback : [];
-  return {
-    cv_match_rate: int01(obj?.cv_match_rate),
-    project_score: int01(obj?.project_score),
-    overall_summary: String(obj?.overall_summary || "").slice(0, 500),
-    project_feedback: arr.slice(0, 5).map((x: any) => String(x).slice(0, 200)),
-  };
+  const data = Schema.parse(obj);
+
+  for (const k of Object.keys(data.cvBreakdown))
+    (data.cvBreakdown as any)[k] = clamp15((data.cvBreakdown as any)[k]);
+  for (const k of Object.keys(data.projectBreakdown))
+    (data.projectBreakdown as any)[k] = clamp15(
+      (data.projectBreakdown as any)[k],
+    );
+
+  const sents = data.summary.split(/(?<=[.!?])\s+/).filter(Boolean);
+  if (sents.length > 5) data.summary = sents.slice(0, 5).join(" ");
+
+  return data as LLMScoreRaw;
 }

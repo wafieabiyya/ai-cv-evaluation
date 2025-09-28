@@ -7,41 +7,53 @@ export function buildEvalPrompt(p: {
   locale?: string;
 }) {
   const locale = p.locale || "id-ID";
+  const langLine =
+    locale === "id-ID"
+      ? "Tulis ringkasan & feedback dalam Bahasa Indonesia."
+      : `Write summary & feedback in ${locale}.`;
+
   const ctxStr = p.contexts
-    .map((c, i) => `### Context ${i + 1}: ${c.title}\n${c.raw_text}`)
+    .map((c, i) => `# Context ${i + 1}: ${c.title}\n${c.raw_text}`)
     .join("\n\n");
 
   return `
-Anda adalah reviewer teknis. Jawab ${
-    locale === "id-ID" ? "dalam Bahasa Indonesia" : "in ${locale}"
-  }.
+You are a precise evaluator. Output STRICT JSON ONLY (no markdown, no prose outside JSON). ${langLine}
+Score each parameter on a 1–5 scale. Do not return percentages.
 
-Tujuan: Nilai kecocokan kandidat backend berdasarkan CV & project report, dengan mempertimbangkan konteks (job desc / rubric) yang diberikan.
+RUBRIC (weights for information only)
+CV (1–5 each):
+- tech (40%): alignment with backend (Node.js, DB, APIs, cloud), AI/LLM exposure
+- experience (25%): years & project complexity
+- achievements (20%): measurable impact/outcomes
+- culture (15%): communication, teamwork/leadership, learning mindset
 
-Batasan:
-- Skor integer 0..100.
-- Feedback maksimal 5 butir, kalimat singkat, actionable.
-- Ringkas, hindari basa-basi.
+Project (1–5 each):
+- correctness (30%): prompt design / chaining / RAG context injection
+- code (25%): clean, modular, reusable, tested
+- resilience (20%): handles long jobs, retries/backoff, API failures, idempotency
+- docs (15%): README clarity, setup, trade-offs explanation
+- creativity (10%): useful extras beyond requirements
 
-Rubric ringkas:
-- CV Match (0..100): relevansi Node.js, Postgres, Redis/queues, retry/backoff, RAG/pgvector, pengalaman nyata, metrik berdampak.
-- Project Score (0..100): correctness, arsitektur/code quality, reliability (retries, idempotency), dokumentasi, trade-off.
-
-Format output HARUS JSON murni (tanpa markdown), schema:
-{
-  "cv_match_rate": number,
-  "project_score": number,
-  "overall_summary": string,
-  "project_feedback": string[]
-}
-
-=== CONTEXTS ===
+CONTEXT
 ${ctxStr}
 
-=== CV ===
+CANDIDATE_CV
 ${p.cvText}
 
-=== PROJECT REPORT ===
+PROJECT_REPORT
 ${p.projectText}
+
+Respond with JSON only in exactly this shape:
+{
+  "cvBreakdown": { "tech": 1, "experience": 1, "achievements": 1, "culture": 1 },
+  "projectBreakdown": { "correctness": 1, "code": 1, "resilience": 1, "docs": 1, "creativity": 1 },
+  "summary": "3–5 sentences ...",
+  "feedback": ["...", "..."]
+}
+Rules:
+- All scores must be numbers in the range 1..5.
+- "summary" must be 3–5 sentences.
+- "feedback" is an array of short, actionable bullet points (max 5 items).
+- No text outside the JSON.
 `.trim();
 }

@@ -1,10 +1,12 @@
 export type RAGCtx = { title: string; raw_text: string };
 
-export type LLMScore = {
-  cv_match_rate: number; // 0..100
-  project_score: number; // 0..100
-  overall_summary: string; // <= 500 chars
-  project_feedback: string[]; // <= 5 items
+import type { CvBreakdown, ProjectBreakdown } from "@utils/scoring";
+
+export type LLMScoreRaw = {
+  cvBreakdown: CvBreakdown; // 1..5
+  projectBreakdown: ProjectBreakdown; // 1..5
+  summary: string; // 3–5 sentences
+  feedback: string[]; // bullet points
 };
 
 export interface LLMPort {
@@ -12,6 +14,6 @@ export interface LLMPort {
     cvText: string;
     projectText: string;
     contexts: RAGCtx[];
-    locale?: string; // e.g. "en" or "id-ID"
-  }): Promise<LLMScore>;
+    locale?: string; // e.g. "id-ID"
+  }): Promise<LLMScoreRaw>;
 }
